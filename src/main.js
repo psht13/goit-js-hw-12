@@ -13,6 +13,7 @@ const refs = {
   input: document.querySelector('.entry-form-input'),
   gallery: document.querySelector('.gallery'),
   loader: document.querySelector('.loader'),
+  loadMore: document.querySelector('.next-page'),
 };
 
 const iziParams = {
@@ -35,7 +36,11 @@ const simpleParams = {
   overlayOpacity: 0.8,
 };
 
+const perPage = 15;
 let gallery;
+let currentPage = 1;
+let maxPage = 10;
+let query = '';
 
 // functions
 function showLoader() {
@@ -46,28 +51,96 @@ function hideLoader() {
   refs.loader.classList.add('visually-hidden');
 }
 
-function onPhotosSearch(query) {
-  refs.gallery.innerHTML = '';
+function showLoadMore() {
+  refs.loadMore.classList.remove('visually-hidden');
+}
+
+function hideLoadMore() {
+  refs.loadMore.classList.add('visually-hidden');
+}
+
+function smoothScroll() {
+  const liElemHeight = refs.gallery.children[0].getBoundingClientRect().height;
+  const gap = 24;
+  window.scrollBy({
+    top: 2 * liElemHeight + gap,
+    behavior: 'smooth',
+  });
+}
+
+function updateBtnStatus() {
+  if (currentPage >= maxPage) {
+    hideLoadMore();
+
+    if (maxPage) {
+      iziToast.info({
+        position: 'topRight',
+        messageColor: '#FFFFFF',
+        iconUrl: '../img/error.svg',
+        message:
+          "We're sorry, but you've reached<br> the end of search results.",
+      });
+    }
+  } else {
+    showLoadMore();
+  }
+}
+
+async function onPhotosSearch(query) {
   showLoader();
-  getPhotos(query)
-    .then(res => {
-      if (res.hits.length === 0) {
-        iziToast.show(iziParams);
-        return;
-      }
-      const markup = photoCardsTemplate(res.hits);
-      refs.gallery.insertAdjacentHTML('afterbegin', markup);
-      gallery = new SimpleLightbox('.gallery a', simpleParams);
-      gallery.refresh();
-      gallery.on('show.simplelightbox');
-    })
-    .finally(() => hideLoader());
+  hideLoadMore();
+  currentPage = 1;
+  refs.gallery.innerHTML = '';
+
+  try {
+    const data = await getPhotos(query, currentPage);
+
+    if (data.hits.length === 0) {
+      iziToast.show(iziParams);
+      return;
+    }
+    //перевірка на порожню відповідь
+
+    maxPage = Math.ceil(data.totalHits / perPage);
+    const markup = photoCardsTemplate(data.hits);
+    refs.gallery.innerHTML = markup;
+    updateBtnStatus();
+
+    gallery = new SimpleLightbox('.gallery a', simpleParams);
+    gallery.refresh();
+    gallery.on('show.simplelightbox');
+  } catch (error) {
+    console.log(error);
+  } finally {
+    hideLoader();
+  }
 }
 
 //event listeners
 refs.form.addEventListener('submit', e => {
   e.preventDefault();
-  const query = refs.input.value.trim();
+  query = refs.input.value.trim();
   onPhotosSearch(query);
   refs.form.reset();
+});
+
+refs.loadMore.addEventListener('click', async () => {
+  currentPage++;
+  hideLoadMore();
+  showLoader();
+
+  try {
+    const data = await getPhotos(query, currentPage);
+    const markup = photoCardsTemplate(data.hits);
+    refs.gallery.insertAdjacentHTML('beforeend', markup);
+    updateBtnStatus();
+    smoothScroll();
+
+    gallery.refresh();
+    gallery.on('show.simplelightbox');
+  } catch (error) {
+    console.log(error);
+  } finally {
+    hideLoader();
+  }
 });
