@@ -25,7 +25,6 @@ const iziParams = {
     'Sorry, there are no images matching<br>' +
     'your search query.Please try again!',
   position: 'topRight',
-  iconUrl: '../img/error.svg',
 };
 
 const simpleParams = {
@@ -76,7 +75,6 @@ function updateBtnStatus() {
       iziToast.info({
         position: 'topRight',
         messageColor: '#FFFFFF',
-        iconUrl: '../img/error.svg',
         message:
           "We're sorry, but you've reached<br> the end of search results.",
       });
@@ -96,7 +94,7 @@ async function onPhotosSearch(query) {
     const data = await getPhotos(query, currentPage);
 
     if (data.hits.length === 0) {
-      iziToast.show(iziParams);
+      iziToast.error(iziParams);
       return;
     }
     //перевірка на порожню відповідь
