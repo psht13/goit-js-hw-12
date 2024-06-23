@@ -108,7 +108,7 @@ async function onPhotosSearch(query) {
     gallery.refresh();
     gallery.on('show.simplelightbox');
   } catch (error) {
-    console.log(error);
+    iziToast.error({ ...iziParams, message: error.toString() });
   } finally {
     hideLoader();
   }
@@ -137,7 +137,7 @@ refs.loadMore.addEventListener('click', async () => {
     gallery.refresh();
     gallery.on('show.simplelightbox');
   } catch (error) {
-    console.log(error);
+    iziToast.error({ ...iziParams, message: error.toString() });
   } finally {
     hideLoader();
   }
